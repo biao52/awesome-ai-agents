@@ -1,0 +1,22 @@
+{
+  "name": "codebase-rag",
+  "version": "1.0.0",
+  "description": "Index a local codebase and ask questions about it using RAG",
+  "type": "module",
+  "scripts": {
+    "start": "tsx index.ts",
+    "typecheck": "tsc --noEmit",
+    "build": "tsc"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.40.0",
+    "chromadb": "^1.9.0",
+    "dotenv": "^16.4.0",
+    "openai": "^4.80.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.7.0"
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "name": "agentic-rag",
+  "version": "1.0.0",
+  "description": "Agentic RAG -- smart retrieval that decides when to retrieve, answer directly, or ask for clarification",
+  "type": "module",
+  "scripts": {
+    "start": "tsx index.ts",
+    "typecheck": "tsc --noEmit",
+    "build": "tsc"
+  },
+  "dependencies": {
+    "chromadb": "^1.9.2",
+    "dotenv": "^16.4.0",
+    "openai": "^4.77.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.7.0"
+  }
+}

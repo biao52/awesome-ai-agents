@@ -1,0 +1,160 @@
+name: Validate Examples
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  detect-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      examples: ${{ steps.changes.outputs.examples }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: changes
+        name: Detect changed examples
+        run: |
+          # Find all example directories that have changes
+          changed_dirs=$(git diff --name-only ${{ github.event.before || 'HEAD~1' }} HEAD | \
+            grep -oP '^[^/]+(/[^/]+){1,2}' | sort -u | \
+            while read dir; do
+              if [ -f "$dir/python/main.py" ] || [ -f "$dir/typescript/index.ts" ]; then
+                echo "$dir"
+              fi
+            done)
+          echo "examples=$changed_dirs" >> $GITHUB_OUTPUT
+
+  validate-python:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Validate Python examples have required files
+        run: |
+          errors=0
+          for dir in $(find . -name "main.py" -path "*/python/*" | sed 's|/python/main.py||'); do
+            echo "Checking $dir..."
+
+            if [ ! -f "$dir/python/requirements.txt" ]; then
+              echo "  ERROR: Missing requirements.txt"
+              errors=$((errors + 1))
+            fi
+
+            if [ ! -f "$dir/python/.env.example" ]; then
+              echo "  ERROR: Missing .env.example"
+              errors=$((errors + 1))
+            fi
+
+            if [ ! -f "$dir/README.md" ]; then
+              echo "  ERROR: Missing README.md"
+              errors=$((errors + 1))
+            fi
+
+            # Check for syntax errors
+            python -m py_compile "$dir/python/main.py" 2>/dev/null || {
+              echo "  ERROR: Syntax error in main.py"
+              errors=$((errors + 1))
+            }
+          done
+
+          if [ $errors -gt 0 ]; then
+            echo "Found $errors error(s)"
+            exit 1
+          fi
+
+  validate-typescript:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: ["20", "22"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+
+      - name: Validate TypeScript examples have required files
+        run: |
+          errors=0
+          for dir in $(find . -name "index.ts" -path "*/typescript/*" | sed 's|/typescript/index.ts||'); do
+            echo "Checking $dir..."
+
+            if [ ! -f "$dir/typescript/package.json" ]; then
+              echo "  ERROR: Missing package.json"
+              errors=$((errors + 1))
+            fi
+
+            if [ ! -f "$dir/typescript/tsconfig.json" ]; then
+              echo "  ERROR: Missing tsconfig.json"
+              errors=$((errors + 1))
+            fi
+
+            if [ ! -f "$dir/typescript/.env.example" ]; then
+              echo "  ERROR: Missing .env.example"
+              errors=$((errors + 1))
+            fi
+
+            # Install deps and typecheck
+            if [ -f "$dir/typescript/package.json" ]; then
+              cd "$dir/typescript"
+              npm install --ignore-scripts 2>/dev/null
+              npx tsc --noEmit 2>/dev/null || {
+                echo "  ERROR: TypeScript compilation errors in $dir"
+                errors=$((errors + 1))
+              }
+              cd - > /dev/null
+            fi
+          done
+
+          if [ $errors -gt 0 ]; then
+            echo "Found $errors error(s)"
+            exit 1
+          fi
+
+  validate-structure:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate dual-language requirement
+        run: |
+          errors=0
+
+          # Check that every example with Python also has TypeScript
+          for dir in $(find . -name "main.py" -path "*/python/*" | sed 's|/python/main.py||'); do
+            if [ ! -f "$dir/typescript/index.ts" ]; then
+              echo "ERROR: $dir has Python but missing TypeScript implementation"
+              errors=$((errors + 1))
+            fi
+          done
+
+          # Check that every example with TypeScript also has Python
+          for dir in $(find . -name "index.ts" -path "*/typescript/*" | sed 's|/typescript/index.ts||'); do
+            if [ ! -f "$dir/python/main.py" ]; then
+              echo "ERROR: $dir has TypeScript but missing Python implementation"
+              errors=$((errors + 1))
+            fi
+          done
+
+          if [ $errors -gt 0 ]; then
+            echo "Found $errors error(s)"
+            exit 1
+          fi
+
+          echo "All examples have both implementations!"
+
+      - name: Check for secrets
+        run: |
+          # Check for potential API keys in committed files
+          if grep -rn "sk-[a-zA-Z0-9]\{20,\}" --include="*.py" --include="*.ts" --include="*.json" .; then
+            echo "ERROR: Possible API key found in source files"
+            exit 1
+          fi
+          echo "No secrets detected."

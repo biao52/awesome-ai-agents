@@ -1,0 +1,86 @@
+name: Bug Report
+description: Report a bug in an example
+title: "[Bug] "
+labels: ["bug"]
+body:
+  - type: dropdown
+    id: example
+    attributes:
+      label: Which example?
+      description: Select the example where you found the bug.
+      options:
+        - "01 - Research Agent"
+        - "02 - Code Review Agent"
+        - "03 - Data Analyst Agent"
+        - "04 - Web Scraping Agent"
+        - "05 - Customer Support Agent"
+        - "06 - Deep Research Agent"
+        - "07 - Coding Agent"
+        - "08 - Computer Use Agent"
+        - "09 - Software Dev Team"
+        - "10 - Content Pipeline"
+        - "11 - PDF Chatbot"
+        - "12 - Codebase RAG"
+        - "13 - Agentic RAG"
+        - "14 - MCP Postgres Server"
+        - "15 - MCP GitHub Server"
+        - "16 - MCP Client Agent"
+        - "17 - Conversation Memory"
+        - "18 - Entity Memory"
+        - "19 - Realtime Voice Agent"
+        - "20 - OpenAI Agents SDK Quickstart"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: language
+    attributes:
+      label: Language
+      options:
+        - Python
+        - TypeScript
+        - Both
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: What happened?
+      description: Describe the bug clearly.
+      placeholder: "When I run `python main.py`, I get..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Minimal steps to reproduce the issue.
+      value: |
+        1.
+        2.
+        3.
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+      description: What should have happened?
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Your OS, Python/Node version, etc.
+      value: |
+        - OS:
+        - Python version:
+        - Node.js version:
+        - Package manager: pip / npm
+    validations:
+      required: false

@@ -1,0 +1,51 @@
+# Dependencies
+node_modules/
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Python virtual environments
+venv/
+.venv/
+env/
+
+# Output files
+output/
+*.log
+
+# ChromaDB / vector stores
+chroma_data/
+qdrant_data/
+
+# SQLite databases (generated at runtime)
+*.db
+*.sqlite
+*.sqlite3
+
+# Playwright
+playwright-report/
+test-results/
+
+# TypeScript build output
+dist/
+*.tsbuildinfo
+
+# Claude Code local context
+CLAUDE.md

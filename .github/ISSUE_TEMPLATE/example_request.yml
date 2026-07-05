@@ -1,0 +1,56 @@
+name: Example Request
+description: Suggest a new AI agent example
+title: "[Example Request] "
+labels: ["enhancement", "new-example"]
+body:
+  - type: textarea
+    id: description
+    attributes:
+      label: What kind of agent example would you like?
+      description: Describe the agent, what it does, and why it would be useful.
+      placeholder: "An agent that..."
+    validations:
+      required: true
+
+  - type: dropdown
+    id: category
+    attributes:
+      label: Category
+      options:
+        - Starter Agent
+        - Advanced Agent
+        - Local (Ollama) Agent
+        - Multi-Agent Team
+        - RAG
+        - MCP
+        - A2A
+        - Memory
+        - Voice
+        - Framework
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: apis
+    attributes:
+      label: APIs / Models involved
+      description: Which APIs or models would this example use?
+      placeholder: "OpenAI GPT-4o, Tavily search, etc."
+    validations:
+      required: false
+
+  - type: textarea
+    id: references
+    attributes:
+      label: References
+      description: Links to docs, blog posts, or similar projects.
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: contribution
+    attributes:
+      label: Would you like to contribute this example?
+      options:
+        - label: I'd like to implement this myself

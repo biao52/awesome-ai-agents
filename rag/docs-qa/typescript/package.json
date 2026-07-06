@@ -1,0 +1,21 @@
+{
+  "name": "docs-qa",
+  "version": "1.0.0",
+  "description": "Documentation Q&A -- crawl any docs site via Reader, build a RAG index, and answer questions",
+  "type": "module",
+  "scripts": {
+    "start": "tsx index.ts",
+    "typecheck": "tsc --noEmit",
+    "build": "tsc"
+  },
+  "dependencies": {
+    "chromadb": "^1.9.2",
+    "dotenv": "^16.4.0",
+    "openai": "^4.77.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.7.0"
+  }
+}

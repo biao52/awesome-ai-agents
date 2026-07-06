@@ -5,7 +5,7 @@
  * contact info.
  *
  * This agent uses Reader (https://reader.dev) to convert web pages to clean
- * markdown. The free endpoint at r.reader.dev requires no API key or signup.
+ * markdown. Web reading powered by Reader (https://reader.dev) -- get your API key at reader.dev
  */
 
 import "dotenv/config";
@@ -16,7 +16,7 @@ import Anthropic from "@anthropic-ai/sdk";
 // ---------------------------------------------------------------------------
 
 const DEFAULT_MODEL = "claude-sonnet-4-20250514";
-const READER_BASE_URL = "https://r.reader.dev/";
+const READER_API_URL = "https://api.reader.dev/v1/read";
 const MAX_CONTENT_LENGTH = 40_000;
 const REQUEST_TIMEOUT_MS = 30_000;
 const MAX_RETRIES = 3;
@@ -40,7 +40,7 @@ const COMPANY_PATHS = [
 // ---------------------------------------------------------------------------
 
 function validateEnv(): void {
-  const required = ["ANTHROPIC_API_KEY"];
+  const required = ["ANTHROPIC_API_KEY", "READER_API_KEY"];
   const missing = required.filter((v) => !process.env[v]);
   if (missing.length > 0) {
     console.error(`Missing environment variables: ${missing.join(", ")}`);
@@ -133,20 +133,21 @@ interface CompanyData {
  * Fetch a single page as clean markdown using Reader.
  *
  * Reader (reader.dev) converts any web page into clean, readable markdown.
- * The r.reader.dev endpoint is free and requires no API key.
+ * Uses the Reader API at api.reader.dev/v1/read.
  *
  * Returns null if the page cannot be fetched (404, timeout, etc.).
  */
 async function readPage(url: string): Promise<string | null> {
-  const readerUrl = `${READER_BASE_URL}${url}`;
 
   for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
     try {
-      const response = await fetch(readerUrl, {
+      const response = await fetch(READER_API_URL, {
+        method: "POST",
         headers: {
-          Accept: "text/markdown",
-          "User-Agent": "LeadEnrichmentAgent/1.0",
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${process.env.READER_API_KEY}`,
         },
+        body: JSON.stringify({ url }),
         signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
       });
 
@@ -164,7 +165,8 @@ async function readPage(url: string): Promise<string | null> {
         return null;
       }
 
-      let content = (await response.text()).trim();
+      const respData = await response.json() as { data: { markdown: string } };
+      let content = (respData.data.markdown || "").trim();
 
       if (!content) {
         return null;

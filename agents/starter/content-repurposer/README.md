@@ -15,7 +15,7 @@
 User provides blog post URL
     |
     v
-Reader (r.reader.dev) fetches article as clean markdown
+Reader API (api.reader.dev/v1/read) fetches article as clean markdown
     |
     v
 Claude repurposes into selected formats:
@@ -32,7 +32,7 @@ Output: All formats in one structured response
 
 - Python 3.11+ / Node.js 20+
 - Anthropic API key -- get one at [console.anthropic.com](https://console.anthropic.com/)
-- No Reader API key needed -- the free endpoint at `r.reader.dev` requires no signup
+- Reader API key from [reader.dev](https://reader.dev) -- sign up to get your key
 
 ## Quick Start
 
@@ -41,7 +41,7 @@ Output: All formats in one structured response
 ```bash
 cd python
 pip install -r requirements.txt
-cp .env.example .env  # Then add your Anthropic API key
+cp .env.example .env  # Then add your Anthropic + Reader API keys
 python main.py "https://example.com/blog-post"
 ```
 
@@ -50,13 +50,13 @@ python main.py "https://example.com/blog-post"
 ```bash
 cd typescript
 npm install
-cp .env.example .env  # Then add your Anthropic API key
+cp .env.example .env  # Then add your Anthropic + Reader API keys
 npx tsx index.ts "https://example.com/blog-post"
 ```
 
 ## How It Works
 
-The agent has two steps: **read** and **repurpose**. First, it sends the URL to Reader's free endpoint at `r.reader.dev`, which strips away navigation, ads, and boilerplate, returning clean markdown of just the article content. This is far better than feeding raw HTML to an LLM -- you get a smaller, cleaner input that produces higher-quality output.
+The agent has two steps: **read** and **repurpose**. First, it sends the URL to the Reader API (`api.reader.dev/v1/read`), which strips away navigation, ads, and boilerplate, returning clean markdown of just the article content. This is far better than feeding raw HTML to an LLM -- you get a smaller, cleaner input that produces higher-quality output.
 
 Second, the agent sends the markdown to Claude with a carefully structured system prompt. Instead of making separate API calls for each format, it asks for all formats in a single request. This is both faster and cheaper. The system prompt includes specific constraints for each format -- tweet character limits, LinkedIn word count targets, email newsletter structure -- so Claude produces platform-appropriate content without extra rounds.
 
@@ -71,9 +71,8 @@ Why Claude for this task? Content repurposing requires understanding tone, audie
 | Variable | Required | Description |
 | --- | --- | --- |
 | `ANTHROPIC_API_KEY` | Yes | Your Anthropic API key |
+| `READER_API_KEY` | Yes | Your Reader API key -- get one at [reader.dev](https://reader.dev) |
 | `MODEL` | No | Override the model (default: `claude-sonnet-4-20250514`) |
-
-Reader requires no configuration -- the `r.reader.dev` endpoint is free and keyless.
 
 ## Key Files
 

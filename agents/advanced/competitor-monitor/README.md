@@ -24,14 +24,14 @@ On the first run for any URL, the agent captures a baseline snapshot with no ana
 
 - Python 3.10+ or Node.js 18+
 - An Anthropic API key for Claude analysis
-- Reader requires no API key and is free to use
+- A Reader API key -- get one at [reader.dev](https://reader.dev)
 
 ## Quick Start (Python)
 
 ```bash
 cd python
 cp .env.example .env
-# Add your ANTHROPIC_API_KEY to .env
+# Add your ANTHROPIC_API_KEY and READER_API_KEY to .env
 
 pip install -r requirements.txt
 
@@ -47,7 +47,7 @@ python main.py "https://example.com/pricing" "https://example.com/features"
 ```bash
 cd typescript
 cp .env.example .env
-# Add your ANTHROPIC_API_KEY to .env
+# Add your ANTHROPIC_API_KEY and READER_API_KEY to .env
 
 npm install
 
@@ -63,8 +63,7 @@ npx tsx index.ts "https://example.com/pricing" "https://example.com/features"
 | Variable | Required | Description |
 |----------|----------|-------------|
 | `ANTHROPIC_API_KEY` | Yes | Your Anthropic API key for Claude analysis |
-
-Reader is used for page reading and requires no configuration or API key.
+| `READER_API_KEY` | Yes | Your Reader API key -- get one at [reader.dev](https://reader.dev) |
 
 ## CLI Reference
 
@@ -121,7 +120,7 @@ Minor changes like formatting or typo fixes are identified as such to avoid fals
 CLI args (URLs)
     |
     v
-Reader (r.reader.dev)  -->  Clean markdown for each page
+Reader API (api.reader.dev/v1/read)  -->  Clean markdown for each page
     |
     v
 Snapshot store          -->  Load previous / save current

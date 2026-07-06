@@ -2,7 +2,7 @@
 Paper Summarizer Agent -- Reads research papers via URLs and produces structured summaries.
 
 This agent uses Reader (https://reader.dev) to convert web pages to clean markdown.
-The free endpoint at r.reader.dev requires no API key or signup.
+Web reading powered by Reader (https://reader.dev) -- get your API key at reader.dev
 """
 
 import os
@@ -19,7 +19,7 @@ load_dotenv()
 
 def validate_env() -> None:
     """Validate required environment variables are set."""
-    required = ["OPENAI_API_KEY"]
+    required = ["OPENAI_API_KEY", "READER_API_KEY"]
     missing = [var for var in required if not os.getenv(var)]
     if missing:
         print(f"❌ Missing environment variables: {', '.join(missing)}")
@@ -36,7 +36,7 @@ def log(emoji: str, message: str) -> None:
 # Reader -- fetch web pages as clean markdown
 # ---------------------------------------------------------------------------
 
-READER_BASE_URL = "https://r.reader.dev/"
+READER_API_URL = "https://api.reader.dev/v1/read"
 MAX_RETRIES = 3
 RETRY_DELAY_SECONDS = 2.0
 
@@ -47,18 +47,19 @@ async def fetch_paper(url: str) -> str:
     Reader converts any web page into clean markdown, which is exactly
     what LLMs need for comprehension. No HTML parsing required.
     """
-    reader_url = f"{READER_BASE_URL}{url}"
 
     for attempt in range(1, MAX_RETRIES + 1):
         try:
             async with httpx.AsyncClient(follow_redirects=True) as client:
-                response = await client.get(
-                    reader_url,
-                    headers={"Accept": "text/markdown"},
+                response = await client.post(
+                    READER_API_URL,
+                    json={"url": url},
+                    headers={"Authorization": f"Bearer {os.getenv('READER_API_KEY', '')}"},
                     timeout=60.0,
                 )
                 response.raise_for_status()
-                content = response.text
+                data = response.json()
+                content = data.get("data", {}).get("markdown", "")
 
                 if not content.strip():
                     raise ValueError("Reader returned empty content")

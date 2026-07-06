@@ -4,7 +4,7 @@ Claude to repurpose it into multiple content formats (Twitter thread, LinkedIn
 post, email newsletter, key takeaways).
 
 # This agent uses Reader (https://reader.dev) to convert web pages to clean markdown.
-# The free endpoint at r.reader.dev requires no API key or signup.
+# Web reading powered by Reader (https://reader.dev) -- get your API key at reader.dev
 """
 
 import os
@@ -35,7 +35,7 @@ FORMAT_DESCRIPTIONS: dict[str, str] = {
 
 def validate_env() -> None:
     """Validate required environment variables are set."""
-    required = ["ANTHROPIC_API_KEY"]
+    required = ["ANTHROPIC_API_KEY", "READER_API_KEY"]
     missing = [var for var in required if not os.getenv(var)]
     if missing:
         print(f"Error: Missing environment variables: {', '.join(missing)}")
@@ -52,29 +52,27 @@ def log(emoji: str, message: str) -> None:
 # Reader -- fetch article as markdown
 # ---------------------------------------------------------------------------
 
-READER_BASE_URL = "https://r.reader.dev/"
+READER_API_URL = "https://api.reader.dev/v1/read"
 
 
 async def fetch_article(url: str) -> str:
     """Fetch a web page as clean markdown using Reader.
 
     Reader (reader.dev) converts any web page into clean, readable markdown.
-    The r.reader.dev endpoint is free and requires no API key.
+    Uses the Reader API at api.reader.dev/v1/read.
     """
-    reader_url = f"{READER_BASE_URL}{url}"
     log("📖", f"Fetching article via Reader: {url}")
 
     async with httpx.AsyncClient(follow_redirects=True) as client:
-        response = await client.get(
-            reader_url,
-            headers={
-                "Accept": "text/markdown",
-                "User-Agent": "ContentRepurposer/1.0",
-            },
+        response = await client.post(
+            READER_API_URL,
+            json={"url": url},
+            headers={"Authorization": f"Bearer {os.getenv('READER_API_KEY', '')}"},
             timeout=30.0,
         )
         response.raise_for_status()
-        markdown = response.text
+        data = response.json()
+        markdown = data.get("data", {}).get("markdown", "")
 
     if not markdown.strip():
         raise ValueError("Reader returned empty content. Check that the URL points to a readable article.")

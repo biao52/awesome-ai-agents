@@ -32,7 +32,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 SNAPSHOTS_DIR = Path(__file__).parent / "snapshots"
-READER_BASE = "https://r.reader.dev"
+READER_API_URL = "https://api.reader.dev/v1/read"
 CLAUDE_MODEL = "claude-sonnet-4-20250514"
 
 
@@ -58,10 +58,14 @@ def log(message: str, level: str = "info") -> None:
 # ---------------------------------------------------------------------------
 
 def validate_env() -> str:
-    """Ensure required environment variables are set. Returns the API key."""
+    """Ensure required environment variables are set. Returns the Anthropic API key."""
     api_key = os.environ.get("ANTHROPIC_API_KEY", "")
     if not api_key:
         log("ANTHROPIC_API_KEY is not set. Add it to .env or export it.", "error")
+        sys.exit(1)
+    reader_key = os.environ.get("READER_API_KEY", "")
+    if not reader_key:
+        log("READER_API_KEY is not set. Get one at https://reader.dev", "error")
         sys.exit(1)
     log("Environment validated", "ok")
     return api_key
@@ -169,17 +173,18 @@ async def read_page(client: httpx.AsyncClient, url: str) -> Snapshot:
     Reader converts any web page to clean markdown, which makes diffing
     straightforward and gives Claude well-structured text to analyze.
     """
-    reader_url = f"{READER_BASE}/{url}"
     log(f"Reading {url} via Reader...", "step")
 
-    response = await client.get(
-        reader_url,
-        headers={"Accept": "text/markdown"},
+    response = await client.post(
+        READER_API_URL,
+        json={"url": url},
+        headers={"Authorization": f"Bearer {os.environ.get('READER_API_KEY', '')}"},
         timeout=30.0,
     )
     response.raise_for_status()
 
-    content = response.text.strip()
+    data = response.json()
+    content = data.get("data", {}).get("markdown", "").strip()
     title = extract_title(content)
     word_count = len(content.split())
 

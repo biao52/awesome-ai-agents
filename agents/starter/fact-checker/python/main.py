@@ -23,7 +23,7 @@ load_dotenv()
 # Configuration
 # ---------------------------------------------------------------------------
 
-READER_BASE_URL = "https://r.reader.dev"
+READER_API_URL = "https://api.reader.dev/v1/read"
 TAVILY_API_URL = "https://api.tavily.com/search"
 
 VERDICTS = ["TRUE", "FALSE", "PARTIALLY TRUE", "UNVERIFIABLE"]
@@ -32,7 +32,7 @@ CONFIDENCE_LEVELS = ["HIGH", "MEDIUM", "LOW"]
 
 def validate_env() -> None:
     """Validate required environment variables are set."""
-    required = ["ANTHROPIC_API_KEY", "TAVILY_API_KEY"]
+    required = ["ANTHROPIC_API_KEY", "TAVILY_API_KEY", "READER_API_KEY"]
     missing = [var for var in required if not os.getenv(var)]
     if missing:
         print(f"Missing environment variables: {', '.join(missing)}")
@@ -159,21 +159,18 @@ async def search_for_sources(
 
 async def read_source(url: str, http_client: httpx.AsyncClient) -> str:
     """Read a web page using Reader and return its markdown content."""
-    reader_url = f"{READER_BASE_URL}/{url}"
     try:
-        resp = await http_client.get(
-            reader_url,
-            headers={
-                "Accept": "text/markdown",
-                "User-Agent": "FactCheckerAgent/1.0",
-            },
+        resp = await http_client.post(
+            READER_API_URL,
+            json={"url": url},
+            headers={"Authorization": f"Bearer {os.getenv('READER_API_KEY', '')}"},
             timeout=30.0,
-            follow_redirects=True,
         )
         resp.raise_for_status()
+        data = resp.json()
+        text = data.get("data", {}).get("markdown", "")
         # Truncate to keep context manageable
-        text = resp.text[:8000]
-        return text
+        return text[:8000]
     except Exception as e:
         return f"Error reading page: {e}"
 

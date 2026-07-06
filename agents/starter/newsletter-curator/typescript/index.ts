@@ -42,7 +42,7 @@ interface ParsedArgs {
 // ---------------------------------------------------------------------------
 
 function validateEnv(): void {
-  const required = ["OPENAI_API_KEY"];
+  const required = ["OPENAI_API_KEY", "READER_API_KEY"];
   const missing = required.filter((v) => !process.env[v]);
   if (missing.length > 0) {
     console.error(`❌ Missing environment variables: ${missing.join(", ")}`);
@@ -59,19 +59,23 @@ function log(emoji: string, message: string): void {
 // Phase 1: Fetch URLs via Reader
 // ---------------------------------------------------------------------------
 
-const READER_BASE = "https://r.reader.dev/";
+const READER_API_URL = "https://api.reader.dev/v1/read";
 
 /**
  * Fetch a single URL through Reader and return the result.
  *
  * Reader converts any web page into clean, LLM-friendly markdown.
- * No API key required -- the free tier works for all public URLs.
+ * Uses the Reader API at api.reader.dev/v1/read.
  */
 async function fetchUrl(url: string): Promise<FetchResult> {
-  const readerUrl = `${READER_BASE}${url}`;
   try {
-    const response = await fetch(readerUrl, {
-      headers: { Accept: "text/plain" },
+    const response = await fetch(READER_API_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${process.env.READER_API_KEY}`,
+      },
+      body: JSON.stringify({ url }),
       signal: AbortSignal.timeout(30000),
     });
 
@@ -80,7 +84,8 @@ async function fetchUrl(url: string): Promise<FetchResult> {
       return { url, title: url, content: "", status: "error" };
     }
 
-    const content = await response.text();
+    const respData = await response.json() as { data: { markdown: string } };
+    const content = respData.data.markdown || "";
 
     // Reader returns markdown with a Title: header on the first line
     let title = "";

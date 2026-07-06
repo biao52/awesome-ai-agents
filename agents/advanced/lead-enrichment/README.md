@@ -34,7 +34,7 @@ JSON output to stdout (one object per company, array for multiple)
 
 - Python 3.11+ / Node.js 20+
 - API key for Anthropic (Claude) - get one at [console.anthropic.com](https://console.anthropic.com/settings/keys)
-- No Reader API key needed. The r.reader.dev endpoint is free.
+- Reader API key -- get one at [reader.dev](https://reader.dev)
 
 ## Quick Start
 
@@ -43,7 +43,7 @@ JSON output to stdout (one object per company, array for multiple)
 ```bash
 cd python
 pip install -r requirements.txt
-cp .env.example .env  # Then add your Anthropic API key
+cp .env.example .env  # Then add your Anthropic + Reader API keys
 python main.py "https://stripe.com"
 ```
 
@@ -52,7 +52,7 @@ python main.py "https://stripe.com"
 ```bash
 cd typescript
 npm install
-cp .env.example .env  # Then add your Anthropic API key
+cp .env.example .env  # Then add your Anthropic + Reader API keys
 npx tsx index.ts "https://stripe.com"
 ```
 
@@ -71,6 +71,7 @@ Reader handles all the complexity of web scraping: JavaScript rendering, cookie 
 | Variable          | Required | Description                              |
 | ----------------- | -------- | ---------------------------------------- |
 | `ANTHROPIC_API_KEY` | Yes    | Your Anthropic API key                   |
+| `READER_API_KEY`  | Yes      | Your Reader API key -- get one at [reader.dev](https://reader.dev) |
 | `MODEL`           | No       | Claude model to use (default: claude-sonnet-4-20250514) |
 
 ## Key Files
@@ -158,7 +159,7 @@ python main.py "https://stripe.com" | jq '.pricing'
 
 ## Cost Estimate
 
-Each company enrichment reads 3-6 pages through Reader (free) and makes one Claude API call with the combined content. Typical cost per company is $0.02-0.05 depending on how many pages are available and how content-rich they are.
+Each company enrichment reads 3-6 pages through Reader and makes one Claude API call with the combined content. Typical cost per company is $0.02-0.05 depending on how many pages are available and how content-rich they are.
 
 ## Extend This Example
 

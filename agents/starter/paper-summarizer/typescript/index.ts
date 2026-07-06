@@ -2,7 +2,7 @@
  * Paper Summarizer Agent -- Reads research papers via URLs and produces structured summaries.
  *
  * This agent uses Reader (https://reader.dev) to convert web pages to clean markdown.
- * The free endpoint at r.reader.dev requires no API key or signup.
+ * Web reading powered by Reader (https://reader.dev) -- get your API key at reader.dev
  */
 
 import "dotenv/config";
@@ -16,7 +16,7 @@ import type { ChatCompletionMessageParam } from "openai/resources/chat/completio
 // ---------------------------------------------------------------------------
 
 function validateEnv(): void {
-  const required = ["OPENAI_API_KEY"];
+  const required = ["OPENAI_API_KEY", "READER_API_KEY"];
   const missing = required.filter((v) => !process.env[v]);
   if (missing.length > 0) {
     console.error(`❌ Missing environment variables: ${missing.join(", ")}`);
@@ -33,7 +33,7 @@ function log(emoji: string, message: string): void {
 // Reader -- fetch web pages as clean markdown
 // ---------------------------------------------------------------------------
 
-const READER_BASE_URL = "https://r.reader.dev/";
+const READER_API_URL = "https://api.reader.dev/v1/read";
 const MAX_RETRIES = 3;
 const RETRY_DELAY_MS = 2000;
 
@@ -47,20 +47,25 @@ async function fetchPaper(url: string): Promise<string> {
    * Reader converts any web page into clean markdown, which is exactly
    * what LLMs need for comprehension. No HTML parsing required.
    */
-  const readerUrl = `${READER_BASE_URL}${url}`;
 
   for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
     try {
-      const response = await fetch(readerUrl, {
-        headers: { Accept: "text/markdown" },
+      const response = await fetch(READER_API_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${process.env.READER_API_KEY}`,
+        },
+        body: JSON.stringify({ url }),
         signal: AbortSignal.timeout(60000),
       });
 
       if (!response.ok) {
-        throw new Error(`HTTP ${response.status} ${response.statusText}`);
+        throw new Error(`Reader API error: ${response.status}`);
       }
 
-      const content = await response.text();
+      const data = await response.json() as { data: { markdown: string } };
+      const content = data.data.markdown || "";
 
       if (!content.trim()) {
         throw new Error("Reader returned empty content");

@@ -18,7 +18,7 @@ import type { ChatCompletionMessageParam } from "openai/resources/chat/completio
 
 const MODEL = process.env.MODEL ?? "gpt-4o-mini";
 const EMBEDDING_MODEL = process.env.EMBEDDING_MODEL ?? "text-embedding-3-small";
-const READER_BASE_URL = "https://r.reader.dev";
+const READER_API_URL = "https://api.reader.dev/v1/read";
 const TEMPERATURE = 0.3;
 const CHUNK_SIZE = 512;
 const CHUNK_OVERLAP = 64;
@@ -47,6 +47,12 @@ function validateEnv(): string {
   if (!apiKey) {
     console.error("Error: OPENAI_API_KEY environment variable is required.");
     console.error("Copy .env.example to .env and add your key.");
+    process.exit(1);
+  }
+  const readerKey = process.env.READER_API_KEY;
+  if (!readerKey) {
+    console.error("Error: READER_API_KEY environment variable is required.");
+    console.error("Get your Reader API key at https://reader.dev");
     process.exit(1);
   }
   return apiKey;
@@ -109,16 +115,22 @@ function isDocLink(url: string): boolean {
 // ---------------------------------------------------------------------------
 
 async function readPage(url: string): Promise<string | null> {
-  const readerUrl = `${READER_BASE_URL}/${url}`;
 
   for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
     try {
-      const response = await fetch(readerUrl, {
+      const response = await fetch(READER_API_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${process.env.READER_API_KEY}`,
+        },
+        body: JSON.stringify({ url }),
         signal: AbortSignal.timeout(30_000),
       });
 
       if (response.ok) {
-        const content = (await response.text()).trim();
+        const respData = await response.json() as { data: { markdown: string } };
+        const content = (respData.data.markdown || "").trim();
         return content || null;
       }
 

@@ -22,7 +22,7 @@ Generate search queries (Claude)
 Search the web (Tavily API, 2-3 queries)
     |
     v
-Read top 5 sources in parallel (Reader: r.reader.dev)
+Read top 5 sources in parallel (Reader API: api.reader.dev/v1/read)
     |
     v
 Analyze all evidence (Claude)
@@ -40,7 +40,7 @@ Output: Structured fact-check report
 - Python 3.11+ / Node.js 20+
 - Anthropic API key, get one at [console.anthropic.com](https://console.anthropic.com)
 - Tavily API key, get one at [tavily.com](https://tavily.com) (free tier available)
-- No key needed for Reader (the `r.reader.dev` endpoint is free)
+- Reader API key, get one at [reader.dev](https://reader.dev)
 
 ## Quick Start
 
@@ -66,7 +66,7 @@ npx tsx index.ts "The Great Wall of China is visible from space"
 
 The agent follows a four-step pipeline to verify claims. First, it sends the claim to Claude, which generates 2-3 targeted search queries. A claim like "The Great Wall of China is visible from space" might produce queries about astronaut observations, satellite imagery, and common myths about the Great Wall. This query expansion step is important because a single search rarely covers all angles needed for proper fact-checking.
 
-Next, the agent runs those queries against the Tavily search API and collects unique results across all queries. It then reads the top 5 sources in parallel using Reader (`r.reader.dev`), which converts each web page into clean markdown. This is much better than sending raw HTML to an LLM because Reader strips navigation, ads, and boilerplate, leaving just the article content in a format Claude can reason about effectively.
+Next, the agent runs those queries against the Tavily search API and collects unique results across all queries. It then reads the top 5 sources in parallel using the Reader API (`api.reader.dev/v1/read`), which converts each web page into clean markdown. This is much better than sending raw HTML to an LLM because Reader strips navigation, ads, and boilerplate, leaving just the article content in a format Claude can reason about effectively.
 
 Finally, the agent sends all the source content along with the original claim to Claude for analysis. Claude evaluates each source for credibility and relevance, weighs supporting evidence against contradicting evidence, and produces a structured verdict. The output includes specific evidence points from the sources, not just a yes/no answer. If sources are insufficient or conflicting without resolution, the agent honestly returns UNVERIFIABLE rather than guessing.
 
@@ -78,6 +78,7 @@ The entire pipeline runs in about 10-15 seconds. The Reader calls happen in para
 | --- | --- | --- |
 | `ANTHROPIC_API_KEY` | Yes | Your Anthropic API key |
 | `TAVILY_API_KEY` | Yes | Your Tavily API key for web search |
+| `READER_API_KEY` | Yes | Your Reader API key -- get one at [reader.dev](https://reader.dev) |
 | `MODEL` | No | Override the model (default: `claude-sonnet-4-20250514`) |
 
 ## Key Files
@@ -161,7 +162,7 @@ python main.py "Coffee stunts your growth" --output report.txt
 
 ## How Reader Fits In
 
-Reader (`r.reader.dev`) converts any web page into clean, LLM-friendly markdown. Instead of parsing raw HTML or dealing with JavaScript-rendered content, you send a GET request to `https://r.reader.dev/{url}` and get back just the article text, tables, and headings. No API key required.
+The Reader API (`api.reader.dev/v1/read`) converts any web page into clean, LLM-friendly markdown. Instead of parsing raw HTML or dealing with JavaScript-rendered content, you POST to the Reader API with the URL and get back just the article text, tables, and headings. Get your API key at [reader.dev](https://reader.dev).
 
 This matters for fact-checking because source quality depends on actually reading the content, not just snippets. Search APIs return 1-2 sentence previews, but you need the full article to find specific data points, quotes, and context. Reader gives the agent access to full pages without the noise of ads, navigation bars, and cookie banners that confuse LLMs.
 

@@ -25,7 +25,7 @@ import { fileURLToPath } from "url";
 
 const __dirname = fileURLToPath(new URL(".", import.meta.url));
 const SNAPSHOTS_DIR = join(__dirname, "snapshots");
-const READER_BASE = "https://r.reader.dev";
+const READER_API_URL = "https://api.reader.dev/v1/read";
 const CLAUDE_MODEL = "claude-sonnet-4-20250514";
 
 // ---------------------------------------------------------------------------
@@ -89,6 +89,11 @@ function validateEnv(): string {
     log("ANTHROPIC_API_KEY is not set. Add it to .env or export it.", "error");
     process.exit(1);
   }
+  const readerKey = process.env.READER_API_KEY ?? "";
+  if (!readerKey) {
+    log("READER_API_KEY is not set. Get one at https://reader.dev", "error");
+    process.exit(1);
+  }
   log("Environment validated", "ok");
   return apiKey;
 }
@@ -140,19 +145,24 @@ function clearSnapshots(): number {
 // ---------------------------------------------------------------------------
 
 async function readPage(url: string): Promise<Snapshot> {
-  const readerUrl = `${READER_BASE}/${url}`;
   log(`Reading ${url} via Reader...`, "step");
 
-  const response = await fetch(readerUrl, {
-    headers: { Accept: "text/markdown" },
+  const response = await fetch(READER_API_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${process.env.READER_API_KEY}`,
+    },
+    body: JSON.stringify({ url }),
     signal: AbortSignal.timeout(30_000),
   });
 
   if (!response.ok) {
-    throw new Error(`HTTP ${response.status} reading ${url}`);
+    throw new Error(`Reader API error: ${response.status} reading ${url}`);
   }
 
-  const content = (await response.text()).trim();
+  const respData = await response.json() as { data: { markdown: string } };
+  const content = (respData.data.markdown || "").trim();
   const title = extractTitle(content);
   const wordCount = content.split(/\s+/).length;
 

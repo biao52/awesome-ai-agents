@@ -16,7 +16,7 @@ User provides paper URLs (arxiv, blogs, any URL)
     |
     v
 For each URL:
-    --> Reader (r.reader.dev) converts page to markdown
+    --> Reader API (api.reader.dev/v1/read) converts page to markdown
     --> OpenAI summarizes the markdown content
     --> Structured summary with 9 sections
     |
@@ -28,7 +28,7 @@ Output: Markdown document with all summaries
 
 - Python 3.11+ / Node.js 20+
 - OpenAI API key -- get one at [platform.openai.com](https://platform.openai.com/api-keys)
-- Reader is used for web reading -- the free endpoint at [reader.dev](https://reader.dev) requires no API key or signup
+- **Reader API key** -- sign up at [reader.dev](https://reader.dev) (used for web reading)
 
 ## Quick Start
 
@@ -37,7 +37,7 @@ Output: Markdown document with all summaries
 ```bash
 cd python
 pip install -r requirements.txt
-cp .env.example .env  # Then add your OpenAI API key
+cp .env.example .env  # Then add your OpenAI + Reader API keys
 python main.py "https://arxiv.org/abs/2401.02954"
 ```
 
@@ -46,13 +46,13 @@ python main.py "https://arxiv.org/abs/2401.02954"
 ```bash
 cd typescript
 npm install
-cp .env.example .env  # Then add your OpenAI API key
+cp .env.example .env  # Then add your OpenAI + Reader API keys
 npx tsx index.ts "https://arxiv.org/abs/2401.02954"
 ```
 
 ## How It Works
 
-The agent has two stages: fetching and summarization. For each URL you provide, it first calls Reader's free endpoint (`r.reader.dev/{url}`) to convert the web page into clean markdown. This is the key insight -- LLMs work much better with markdown than raw HTML. Reader handles all the complexity of rendering JavaScript, stripping navigation and ads, and extracting the article content. No HTML parsing code needed on your end.
+The agent has two stages: fetching and summarization. For each URL you provide, it calls the Reader API (`api.reader.dev/v1/read`) to convert the web page into clean markdown. This is the key insight -- LLMs work much better with markdown than raw HTML. Reader handles all the complexity of rendering JavaScript, stripping navigation and ads, and extracting the article content. No HTML parsing code needed on your end.
 
 Once the agent has clean markdown, it sends the content to OpenAI with a structured system prompt that instructs the model to extract nine specific sections: title, authors, publication info, research question, methodology, key findings, limitations, significance, and related work. The low temperature (0.2) keeps the output factual and consistent.
 
@@ -65,9 +65,8 @@ The output is a single markdown document. For one paper, you get the summary dir
 | Variable | Required | Description |
 | --- | --- | --- |
 | `OPENAI_API_KEY` | Yes | Your OpenAI API key |
+| `READER_API_KEY` | Yes | Your Reader API key -- get one at [reader.dev](https://reader.dev) |
 | `MODEL` | No | Override the model (default: `gpt-4o-mini`) |
-
-Reader requires no API key. The free endpoint at `r.reader.dev` works out of the box.
 
 ## Key Files
 
@@ -128,7 +127,7 @@ performance while keeping inference costs low?
 
 ## Cost Estimate
 
-Each paper summary costs roughly $0.003-$0.008 with gpt-4o-mini, depending on paper length. A batch of 10 papers typically costs under $0.05. The Reader call is free -- no cost there.
+Each paper summary costs roughly $0.003-$0.008 with gpt-4o-mini, depending on paper length. A batch of 10 papers typically costs under $0.05. Reader API pricing is available at [reader.dev](https://reader.dev).
 
 If you switch to gpt-4o for higher quality summaries, expect roughly 10x the cost per paper (~$0.03-$0.08). For most papers, gpt-4o-mini produces summaries that are accurate and well-structured enough.
 
@@ -144,20 +143,20 @@ The main variable is paper length. A 5-page workshop paper might cost $0.002 to 
 
 ## How Reader Works
 
-Reader is the web reading provider that powers this agent. When you call `r.reader.dev/{url}`, Reader fetches the page (including JavaScript-rendered content), strips out navigation, ads, and boilerplate, and returns just the article content as clean markdown. This matters because:
+Reader is the web reading provider that powers this agent. When you call the Reader API at `api.reader.dev/v1/read`, Reader fetches the page (including JavaScript-rendered content), strips out navigation, ads, and boilerplate, and returns just the article content as clean markdown. This matters because:
 
 1. **Arxiv pages** are rendered with JavaScript and have complex LaTeX -- Reader handles both
 2. **Blog posts** have headers, footers, sidebars, and cookie banners -- Reader strips all of that
 3. **The output is markdown**, which is what LLMs are best at understanding
 
-The free endpoint requires no API key and no signup. For higher rate limits or advanced features, see [reader.dev](https://reader.dev).
+Get your API key at [reader.dev](https://reader.dev) for full access.
 
 ## Troubleshooting
 
 - **Empty summaries**: Some pages block automated requests. Try a different URL or check if the page is behind a login wall.
 - **Timeout errors**: Large papers can take 30-60 seconds to process through Reader. The agent retries automatically up to 3 times.
 - **Truncated content**: Papers longer than ~80,000 characters are truncated before summarization. The summary will note this.
-- **Rate limiting**: If you process many papers quickly, you may hit Reader's free tier rate limits. Add a short delay between papers or use an API key.
+- **Rate limiting**: If you process many papers quickly, you may hit rate limits. Add a short delay between papers or upgrade your Reader plan.
 
 ## Related Examples
 

@@ -16,7 +16,7 @@
 User provides docs URL
     |
     v
-Read start page via Reader (r.reader.dev)
+Read start page via Reader API (api.reader.dev/v1/read)
     |
     v
 Extract same-domain links from markdown
@@ -42,7 +42,7 @@ Interactive Q&A loop:
 
 - Python 3.10+ or Node.js 20+
 - OpenAI API key -- get one at [platform.openai.com](https://platform.openai.com)
-- Reader handles all web page reading (free, no key needed)
+- Reader API key -- get one at [reader.dev](https://reader.dev)
 - ChromaDB runs in-memory for Python; requires a local server for TypeScript (see setup below)
 
 ## Quick Start
@@ -86,7 +86,7 @@ The conversation history is maintained across turns, so follow-up questions work
 
 ## Why Reader?
 
-Reader converts any web page to clean markdown with a single GET request -- no API key, no browser automation, no HTML parsing on your end. It handles JavaScript rendering, strips navigation and boilerplate, and returns just the content. This means the crawl step is a simple HTTP call per page rather than a Playwright/Puppeteer setup.
+Reader converts any web page to clean markdown with a single API call -- no browser automation or HTML parsing on your end. Get your API key at [reader.dev](https://reader.dev). It handles JavaScript rendering, strips navigation and boilerplate, and returns just the content. This means the crawl step is a simple HTTP POST per page rather than a Playwright/Puppeteer setup.
 
 The link extraction step also benefits: since Reader returns markdown, you can find all internal links with a simple regex for `[text](url)` patterns instead of parsing raw HTML with BeautifulSoup or Cheerio.
 
@@ -95,6 +95,7 @@ The link extraction step also benefits: since Reader returns markdown, you can f
 | Variable | Required | Description |
 |----------|----------|-------------|
 | `OPENAI_API_KEY` | Yes | Your OpenAI API key |
+| `READER_API_KEY` | Yes | Your Reader API key -- get one at [reader.dev](https://reader.dev) |
 | `MODEL` | No | Chat model (default: `gpt-4o-mini`) |
 | `EMBEDDING_MODEL` | No | Embedding model (default: `text-embedding-3-small`) |
 
@@ -143,7 +144,7 @@ Assistant: The documentation describes three tiers of rate limiting...
 
 ## Cost Estimate
 
-- Crawling 20 pages: free (Reader has no cost for GET requests)
+- Crawling 20 pages via Reader API (see [reader.dev](https://reader.dev) for pricing)
 - Embedding 150 chunks: ~$0.002 (text-embedding-3-small is $0.02 per 1M tokens)
 - Each Q&A turn: ~$0.001 (gpt-4o-mini with context)
 - A full session with 10 questions costs roughly $0.01

@@ -16,7 +16,7 @@ User provides list of URLs (CLI args or file)
     |
     v
 Phase 1 -- Parallel Fetch (Reader):
-    URLs --> r.reader.dev/{url} --> clean markdown per page
+    URLs --> Reader API (api.reader.dev/v1/read) --> clean markdown per page
     (all fetched concurrently via asyncio.gather / Promise.all)
     |
     v
@@ -40,7 +40,7 @@ Output: Formatted newsletter digest (markdown)
 
 - Python 3.11+ / Node.js 20+
 - OpenAI API key -- get one at [platform.openai.com](https://platform.openai.com/api-keys)
-- No Reader API key needed -- the free tier handles all public URLs
+- Reader API key from [reader.dev](https://reader.dev) -- sign up to get your key
 
 ## Quick Start
 
@@ -49,7 +49,7 @@ Output: Formatted newsletter digest (markdown)
 ```bash
 cd python
 pip install -r requirements.txt
-cp .env.example .env  # Then add your OpenAI API key
+cp .env.example .env  # Then add your OpenAI + Reader API keys
 python main.py "https://simonwillison.net" "https://blog.pragmaticengineer.com" "https://martinfowler.com"
 ```
 
@@ -58,13 +58,13 @@ python main.py "https://simonwillison.net" "https://blog.pragmaticengineer.com" 
 ```bash
 cd typescript
 npm install
-cp .env.example .env  # Then add your OpenAI API key
+cp .env.example .env  # Then add your OpenAI + Reader API keys
 npx tsx index.ts "https://simonwillison.net" "https://blog.pragmaticengineer.com" "https://martinfowler.com"
 ```
 
 ## How It Works
 
-The agent operates in three phases. First, it fetches all provided URLs through Reader (`r.reader.dev`), which converts any web page into clean, LLM-friendly markdown. This happens in parallel -- all URLs are fetched concurrently, so 10 URLs take roughly the same time as 1. Reader handles JavaScript rendering, cookie banners, and messy HTML automatically.
+The agent operates in three phases. First, it fetches all provided URLs through the Reader API (`api.reader.dev/v1/read`), which converts any web page into clean, LLM-friendly markdown. This happens in parallel -- all URLs are fetched concurrently, so 10 URLs take roughly the same time as 1. Reader handles JavaScript rendering, cookie banners, and messy HTML automatically.
 
 Second, the agent sends each article's content to OpenAI for structured extraction. The model identifies the title, pulls out 3-5 key takeaways, writes a brief summary, and assigns a relevance score from 1-10. This phase also runs in parallel -- each article is analyzed independently. If a `--topic` flag is set, the model biases relevance scores toward articles matching that theme.
 
@@ -77,9 +77,8 @@ Failed URLs are handled gracefully. If Reader cannot fetch a page (timeout, 404,
 | Variable | Required | Description |
 | --- | --- | --- |
 | `OPENAI_API_KEY` | Yes | Your OpenAI API key |
+| `READER_API_KEY` | Yes | Your Reader API key -- get one at [reader.dev](https://reader.dev) |
 | `MODEL` | No | Override the model (default: `gpt-4o-mini`) |
-
-Reader requires no configuration. It is called via `https://r.reader.dev/{url}` with no API key.
 
 ## Key Files
 

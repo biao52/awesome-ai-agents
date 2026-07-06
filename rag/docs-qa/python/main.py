@@ -28,7 +28,7 @@ load_dotenv()
 
 MODEL = os.getenv("MODEL", "gpt-4o-mini")
 EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "text-embedding-3-small")
-READER_BASE_URL = "https://r.reader.dev"
+READER_API_URL = "https://api.reader.dev/v1/read"
 TEMPERATURE = 0.3
 CHUNK_SIZE = 512
 CHUNK_OVERLAP = 64
@@ -60,6 +60,11 @@ def validate_env() -> str:
     if not api_key:
         print("Error: OPENAI_API_KEY environment variable is required.")
         print("Copy .env.example to .env and add your key.")
+        sys.exit(1)
+    reader_key = os.getenv("READER_API_KEY")
+    if not reader_key:
+        print("Error: READER_API_KEY environment variable is required.")
+        print("Get your Reader API key at https://reader.dev")
         sys.exit(1)
     return api_key
 
@@ -113,12 +118,17 @@ def is_doc_link(url: str) -> bool:
 
 async def read_page(client: httpx.AsyncClient, url: str) -> str | None:
     """Read a single page through Reader and return its markdown content."""
-    reader_url = f"{READER_BASE_URL}/{url}"
     for attempt in range(MAX_RETRIES):
         try:
-            response = await client.get(reader_url, timeout=30.0)
+            response = await client.post(
+                READER_API_URL,
+                json={"url": url},
+                headers={"Authorization": f"Bearer {os.getenv('READER_API_KEY', '')}"},
+                timeout=30.0,
+            )
             if response.status_code == 200:
-                content = response.text.strip()
+                data = response.json()
+                content = data.get("data", {}).get("markdown", "").strip()
                 if content:
                     return content
                 return None

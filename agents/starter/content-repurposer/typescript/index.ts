@@ -4,7 +4,7 @@
  * post, email newsletter, key takeaways).
  *
  * This agent uses Reader (https://reader.dev) to convert web pages to clean markdown.
- * The free endpoint at r.reader.dev requires no API key or signup.
+ * Web reading powered by Reader (https://reader.dev) -- get your API key at reader.dev
  */
 
 import "dotenv/config";
@@ -29,7 +29,7 @@ const FORMAT_DESCRIPTIONS: Record<ContentFormat, string> = {
 // ---------------------------------------------------------------------------
 
 function validateEnv(): void {
-  const required = ["ANTHROPIC_API_KEY"];
+  const required = ["ANTHROPIC_API_KEY", "READER_API_KEY"];
   const missing = required.filter((v) => !process.env[v]);
   if (missing.length > 0) {
     console.error(`Error: Missing environment variables: ${missing.join(", ")}`);
@@ -46,31 +46,33 @@ function log(emoji: string, message: string): void {
 // Reader -- fetch article as markdown
 // ---------------------------------------------------------------------------
 
-const READER_BASE_URL = "https://r.reader.dev/";
+const READER_API_URL = "https://api.reader.dev/v1/read";
 
 /**
  * Fetch a web page as clean markdown using Reader.
  *
  * Reader (reader.dev) converts any web page into clean, readable markdown.
- * The r.reader.dev endpoint is free and requires no API key.
+ * Uses the Reader API at api.reader.dev/v1/read.
  */
 async function fetchArticle(url: string): Promise<string> {
-  const readerUrl = `${READER_BASE_URL}${url}`;
   log("📖", `Fetching article via Reader: ${url}`);
 
-  const response = await fetch(readerUrl, {
+  const response = await fetch(READER_API_URL, {
+    method: "POST",
     headers: {
-      Accept: "text/markdown",
-      "User-Agent": "ContentRepurposer/1.0",
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${process.env.READER_API_KEY}`,
     },
+    body: JSON.stringify({ url }),
     signal: AbortSignal.timeout(30000),
   });
 
   if (!response.ok) {
-    throw new Error(`Reader returned HTTP ${response.status}: ${response.statusText}`);
+    throw new Error(`Reader API error: ${response.status}`);
   }
 
-  let markdown = await response.text();
+  const data = await response.json() as { data: { markdown: string } };
+  let markdown = data.data.markdown || "";
 
   if (!markdown.trim()) {
     throw new Error("Reader returned empty content. Check that the URL points to a readable article.");

@@ -4,7 +4,7 @@ pages per company via Reader, and uses Claude to extract structured company
 intelligence including products, pricing, team, tech stack, and contact info.
 
 # This agent uses Reader (https://reader.dev) to convert web pages to clean markdown.
-# The free endpoint at r.reader.dev requires no API key or signup.
+# Web reading powered by Reader (https://reader.dev) -- get your API key at reader.dev
 """
 
 import os
@@ -24,7 +24,7 @@ load_dotenv()
 # ---------------------------------------------------------------------------
 
 DEFAULT_MODEL = "claude-sonnet-4-20250514"
-READER_BASE_URL = "https://r.reader.dev/"
+READER_API_URL = "https://api.reader.dev/v1/read"
 MAX_CONTENT_LENGTH = 40_000  # Per page, to stay within context limits
 REQUEST_TIMEOUT = 30.0
 MAX_RETRIES = 3
@@ -50,7 +50,7 @@ COMPANY_PATHS = [
 
 def validate_env() -> None:
     """Validate required environment variables are set."""
-    required = ["ANTHROPIC_API_KEY"]
+    required = ["ANTHROPIC_API_KEY", "READER_API_KEY"]
     missing = [var for var in required if not os.getenv(var)]
     if missing:
         print(f"Missing environment variables: {', '.join(missing)}", file=sys.stderr)
@@ -73,20 +73,17 @@ async def read_page(client: httpx.AsyncClient, url: str) -> str | None:
     """Fetch a single page as clean markdown using Reader.
 
     Reader (reader.dev) converts any web page into clean, readable markdown.
-    The r.reader.dev endpoint is free and requires no API key.
+    Uses the Reader API at api.reader.dev/v1/read.
 
     Returns None if the page cannot be fetched (404, timeout, etc.).
     """
-    reader_url = f"{READER_BASE_URL}{url}"
 
     for attempt in range(1, MAX_RETRIES + 1):
         try:
-            response = await client.get(
-                reader_url,
-                headers={
-                    "Accept": "text/markdown",
-                    "User-Agent": "LeadEnrichmentAgent/1.0",
-                },
+            response = await client.post(
+                READER_API_URL,
+                json={"url": url},
+                headers={"Authorization": f"Bearer {os.getenv('READER_API_KEY', '')}"},
                 timeout=REQUEST_TIMEOUT,
             )
 
@@ -99,7 +96,8 @@ async def read_page(client: httpx.AsyncClient, url: str) -> str | None:
                 continue
 
             response.raise_for_status()
-            content = response.text.strip()
+            data = response.json()
+            content = data.get("data", {}).get("markdown", "").strip()
 
             if not content:
                 return None

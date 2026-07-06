@@ -26,7 +26,7 @@ load_dotenv()
 
 def validate_env() -> None:
     """Validate required environment variables are set."""
-    required = ["OPENAI_API_KEY"]
+    required = ["OPENAI_API_KEY", "READER_API_KEY"]
     missing = [var for var in required if not os.getenv(var)]
     if missing:
         print(f"❌ Missing environment variables: {', '.join(missing)}")
@@ -43,24 +43,25 @@ def log(emoji: str, message: str) -> None:
 # Phase 1: Fetch URLs via Reader
 # ---------------------------------------------------------------------------
 
-READER_BASE = "https://r.reader.dev/"
+READER_API_URL = "https://api.reader.dev/v1/read"
 
 
 async def fetch_url(client: httpx.AsyncClient, url: str) -> dict[str, Any]:
     """Fetch a single URL through Reader and return the result.
 
     Reader converts any web page into clean, LLM-friendly markdown.
-    No API key required -- the free tier works for all public URLs.
+    Uses the Reader API at api.reader.dev/v1/read.
     """
-    reader_url = f"{READER_BASE}{url}"
     try:
-        response = await client.get(
-            reader_url,
-            headers={"Accept": "text/plain"},
+        response = await client.post(
+            READER_API_URL,
+            json={"url": url},
+            headers={"Authorization": f"Bearer {os.getenv('READER_API_KEY', '')}"},
             timeout=30.0,
         )
         response.raise_for_status()
-        content = response.text
+        data = response.json()
+        content = data.get("data", {}).get("markdown", "")
 
         # Reader returns markdown with a Title: header on the first line
         title = ""

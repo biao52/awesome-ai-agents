@@ -12,7 +12,7 @@ import Anthropic from "@anthropic-ai/sdk";
 // Configuration
 // ---------------------------------------------------------------------------
 
-const READER_BASE_URL = "https://r.reader.dev";
+const READER_API_URL = "https://api.reader.dev/v1/read";
 const TAVILY_API_URL = "https://api.tavily.com/search";
 
 // ---------------------------------------------------------------------------
@@ -20,7 +20,7 @@ const TAVILY_API_URL = "https://api.tavily.com/search";
 // ---------------------------------------------------------------------------
 
 function validateEnv(): void {
-  const required = ["ANTHROPIC_API_KEY", "TAVILY_API_KEY"];
+  const required = ["ANTHROPIC_API_KEY", "TAVILY_API_KEY", "READER_API_KEY"];
   const missing = required.filter((v) => !process.env[v]);
   if (missing.length > 0) {
     console.error(`Missing environment variables: ${missing.join(", ")}`);
@@ -166,21 +166,23 @@ async function searchForSources(
 
 async function readSource(url: string): Promise<string> {
   /** Read a web page using Reader and return its markdown content. */
-  const readerUrl = `${READER_BASE_URL}/${url}`;
   try {
-    const resp = await fetch(readerUrl, {
+    const resp = await fetch(READER_API_URL, {
+      method: "POST",
       headers: {
-        Accept: "text/markdown",
-        "User-Agent": "FactCheckerAgent/1.0",
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${process.env.READER_API_KEY}`,
       },
+      body: JSON.stringify({ url }),
       signal: AbortSignal.timeout(30000),
     });
 
     if (!resp.ok) {
-      return `Error reading page: ${resp.status} ${resp.statusText}`;
+      return `Error reading page: ${resp.status}`;
     }
 
-    const text = await resp.text();
+    const data = await resp.json() as { data: { markdown: string } };
+    const text = data.data.markdown || "";
     return text.slice(0, 8000);
   } catch (e) {
     return `Error reading page: ${e}`;

@@ -163,10 +163,10 @@ async def generate_commit_message(diff: str, context: str, model: str) -> str:
     if not stat_output.strip():
         stat_output, _ = run_git(["diff", "--stat"])
 
+    context_section = f"Context:\n{context}\n\n" if context else ""
     user_message = f"""Generate a conventional commit message for this diff.
 
-{f"Context:\n{context}\n" if context else ""}
-Diff stats:
+{context_section}Diff stats:
 {stat_output.strip()}
 
 Full diff:

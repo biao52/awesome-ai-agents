@@ -1,18 +1,14 @@
 """
 Git Commit Agent -- Reads a git diff and generates a conventional commit message
-using Claude. Optionally applies the commit automatically.
-
-Uses Anthropic Claude for analysis (best-in-class for code understanding).
+using OpenAI. Optionally applies the commit automatically.
 """
 
 import os
 import sys
 import asyncio
 import subprocess
-from typing import Any
-
 from dotenv import load_dotenv
-from anthropic import AsyncAnthropic
+from openai import AsyncOpenAI
 
 load_dotenv()
 
@@ -20,8 +16,8 @@ load_dotenv()
 # Constants
 # ---------------------------------------------------------------------------
 
-DEFAULT_MODEL = "claude-sonnet-4-20250514"
-MAX_DIFF_LENGTH = 80_000  # ~80K chars -- well within Claude's context
+DEFAULT_MODEL = "gpt-5-mini"
+MAX_DIFF_LENGTH = 80_000  # ~80K chars
 MAX_RETRIES = 3
 
 # ---------------------------------------------------------------------------
@@ -31,12 +27,12 @@ MAX_RETRIES = 3
 
 def validate_env() -> None:
     """Validate required environment variables are set."""
-    required = ["ANTHROPIC_API_KEY"]
+    required = ["OPENAI_API_KEY"]
     missing = [var for var in required if not os.getenv(var)]
     if missing:
         print(f"❌ Missing environment variables: {', '.join(missing)}")
         print("   Copy .env.example to .env and fill in your API keys.")
-        print("   Get your Anthropic key at: https://console.anthropic.com/settings/keys")
+        print("   Get your OpenAI API key from the OpenAI API platform.")
         sys.exit(1)
 
 
@@ -114,7 +110,7 @@ def get_repo_context() -> str:
 
 
 # ---------------------------------------------------------------------------
-# Commit message generation via Claude
+# Commit message generation via OpenAI
 # ---------------------------------------------------------------------------
 
 SYSTEM_PROMPT = """You are an expert at writing git commit messages following the Conventional Commits specification.
@@ -151,8 +147,8 @@ Output ONLY the commit message -- no explanations, no markdown fencing, no prefi
 
 
 async def generate_commit_message(diff: str, context: str, model: str) -> str:
-    """Send the diff to Claude and return the generated commit message."""
-    client = AsyncAnthropic()
+    """Send the diff to OpenAI and return the generated commit message."""
+    client = AsyncOpenAI()
 
     # Truncate diff if too large
     if len(diff) > MAX_DIFF_LENGTH:
@@ -176,20 +172,14 @@ Full diff:
 
     for attempt in range(1, MAX_RETRIES + 1):
         try:
-            response = await client.messages.create(
+            response = await client.responses.create(
                 model=model,
-                max_tokens=512,
-                system=SYSTEM_PROMPT,
-                messages=[{"role": "user", "content": user_message}],
-                temperature=0.3,
+                instructions=SYSTEM_PROMPT,
+                input=user_message,
+                max_output_tokens=512,
             )
 
-            result = ""
-            for block in response.content:
-                if block.type == "text":
-                    result += block.text
-
-            return result.strip()
+            return response.output_text.strip()
 
         except Exception as e:
             error_str = str(e)
@@ -260,7 +250,7 @@ async def main() -> None:
             print("  python main.py              # Generate a commit message")
             print("  python main.py --apply      # Generate and apply the commit")
             print()
-            print("The agent uses staged changes (git diff --cached) if available,")
+            print("The agent uses the configured OpenAI model and staged changes (git diff --cached) if available,")
             print("otherwise falls back to unstaged changes (git diff).")
             sys.exit(0)
         else:
@@ -292,7 +282,7 @@ async def main() -> None:
         sys.exit(0)
     except Exception as e:
         print(f"\n❌ Error generating commit message: {e}")
-        print("   Check your ANTHROPIC_API_KEY and network connection.")
+        print("   Check your OPENAI_API_KEY, MODEL, and network connection.")
         sys.exit(1)
 
     print()
